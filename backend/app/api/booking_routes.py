@@ -32,6 +32,7 @@ class AppointmentSchema(BaseModel):
     pre_visit_summary: Optional[str] = None
     post_visit_summary: Optional[str] = None
     doctor_notes: Optional[str] = None
+    patient_name: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -132,7 +133,9 @@ async def list_appointments(
     patient_id: Optional[int] = None,
     db: AsyncSession = Depends(get_db)
 ):
-    query = select(Appointment)
+    from sqlalchemy.orm import selectinload
+    from ..models import Patient
+    query = select(Appointment).options(selectinload(Appointment.patient).selectinload(Patient.user))
     if doctor_id:
         query = query.where(Appointment.doctor_id == doctor_id)
     if patient_id:
@@ -140,7 +143,19 @@ async def list_appointments(
         
     query = query.order_by(Appointment.date.desc(), Appointment.start_time.desc())
     result = await db.execute(query)
-    return result.scalars().all()
+    appointments = result.scalars().all()
+    for appt in appointments:
+        if appt.patient and appt.patient.user:
+            appt.patient_name = appt.patient.user.name
+    return appointments
+
+@router.get("/{appointment_id}", response_model=AppointmentSchema)
+async def get_appointment(appointment_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Appointment).where(Appointment.id == appointment_id))
+    appointment = result.scalars().first()
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    return appointment
 
 @router.post("/{appointment_id}/complete", response_model=AppointmentSchema)
 async def complete_appointment(
@@ -186,6 +201,29 @@ async def complete_appointment(
     
     await db.commit()
     await db.refresh(appointment)
+    
+    import asyncio
+    from ..services.email_service import send_email
+    
+    if appointment.patient and appointment.patient.user and appointment.patient.user.email:
+        patient_email = appointment.patient.user.email
+        subject = f"Your Checkup Details - Unthinkable Health"
+        
+        body = f"Hello {patient_name},\n\n"
+        body += "Your checkup has been completed. Here is the post-visit summary from your doctor:\n\n"
+        body += f"{summary}\n\n"
+        
+        if request.prescriptions:
+            body += "Prescriptions:\n"
+            for p in request.prescriptions:
+                body += f"- {p.medication_name}: {p.dosage}, {p.frequency} for {p.duration_days} days\n"
+            body += "\n"
+        
+        body += "Thank you for using Unthinkable Health!\n"
+        
+        # Send email in background
+        asyncio.create_task(send_email(patient_email, subject, body))
+        
     return appointment
 
 class LeaveRequest(BaseModel):

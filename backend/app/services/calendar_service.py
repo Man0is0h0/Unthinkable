@@ -17,11 +17,12 @@ def generate_ics_event(appointment_id: int, date_str: str, start_time: str, end_
     ics_content = f"""BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Healthcare Appointment Manager//EN
+METHOD:REQUEST
 BEGIN:VEVENT
 UID:{uuid4()}
 DTSTAMP:{dtstamp}
-DTSTART;TZID=UTC:{dtstart}
-DTEND;TZID=UTC:{dtend}
+DTSTART:{dtstart}
+DTEND:{dtend}
 SUMMARY:{summary}
 DESCRIPTION:{description}
 END:VEVENT

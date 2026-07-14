@@ -91,8 +91,8 @@ export default function BookAppointment() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
-        <div className="glass p-10 rounded-2xl text-center max-w-md hover-lift">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <div className="glass-panel p-10 rounded-3xl text-center max-w-md animate-fade-in-up">
           <div className="w-16 h-16 bg-primary/20 text-primary rounded-full flex items-center justify-center mx-auto mb-6">
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
           </div>
@@ -105,11 +105,11 @@ export default function BookAppointment() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8 animate-fade-in">
       <div className="max-w-3xl mx-auto">
-        <Button variant="ghost" onClick={() => router.back()} className="mb-6">← Back</Button>
+        <Button variant="ghost" onClick={() => router.back()} className="mb-6 rounded-xl hover:bg-secondary">← Back</Button>
         
-        <div className="glass p-8 rounded-2xl shadow-sm">
+        <div className="glass-panel p-8 rounded-3xl shadow-lg">
           <h1 className="text-3xl font-bold text-primary mb-2">Book an Appointment</h1>
           <p className="text-muted-foreground mb-8">Select a doctor, choose an available time slot, and tell us your symptoms.</p>
 

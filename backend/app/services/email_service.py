@@ -46,7 +46,8 @@ async def send_email(to_email: str, subject: str, body: str, ics_attachment: byt
             ics_attachment,
             maintype='text',
             subtype='calendar',
-            filename='invite.ics'
+            filename='invite.ics',
+            method='REQUEST'
         )
 
     try:

@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from 'react-markdown';
+import { LogOut, CalendarOff, CheckCircle, Clock } from "lucide-react";
 
 export default function DoctorDashboard() {
   const router = useRouter();
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'scheduled' | 'completed'>('scheduled');
   
   // Completion Modal State
   const [completingId, setCompletingId] = useState<number | null>(null);
@@ -30,6 +32,7 @@ export default function DoctorDashboard() {
     medication_name: string;
     dosage: string;
     frequency: string;
+    instructions: string;
     duration_days: number | string;
   }[]>([]);
 
@@ -115,7 +118,12 @@ export default function DoctorDashboard() {
     try {
       await api.post(`/appointments/${completingId}/complete`, { 
         doctor_notes: doctorNotes,
-        prescriptions: prescriptions
+        prescriptions: prescriptions.map(p => ({
+          medication_name: p.medication_name,
+          dosage: p.dosage,
+          frequency: p.instructions ? `${p.frequency} (${p.instructions})` : p.frequency,
+          duration_days: p.duration_days
+        }))
       });
       setCompletingId(null);
       setDoctorNotes("");
@@ -134,53 +142,82 @@ export default function DoctorDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="min-h-screen p-8 animate-fade-in">
       <div className="max-w-5xl mx-auto space-y-8">
         
-        <header className="flex justify-between items-center bg-card p-6 rounded-2xl shadow-sm border border-border">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center glass-panel p-6 rounded-3xl gap-4">
           <div>
             <h1 className="text-3xl font-bold text-primary">Doctor Dashboard</h1>
             <p className="text-muted-foreground mt-1">Review your agenda and AI pre-visit summaries</p>
           </div>
-          <Button variant="outline" onClick={handleLogout}>Logout</Button>
+          <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2 rounded-xl">
+            <LogOut className="w-4 h-4" /> Logout
+          </Button>
         </header>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="glass p-6 rounded-2xl hover-lift col-span-1 h-fit">
-            <h2 className="text-xl font-semibold mb-4">Leave Management</h2>
-            <p className="text-sm text-muted-foreground mb-4">Need a day off? Mark your calendar as unavailable.</p>
-            <div className="space-y-3">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-6">
+          <div className="flex space-x-2 p-1 bg-secondary/50 rounded-full w-full md:w-auto">
+            <button 
+              onClick={() => setActiveTab('scheduled')}
+              className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${activeTab === 'scheduled' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Scheduled
+            </button>
+            <button 
+              onClick={() => setActiveTab('completed')}
+              className={`flex-1 md:flex-none px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${activeTab === 'completed' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              Completed
+            </button>
+          </div>
+
+          <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto shadow-md">
+            <div>
+              <h2 className="text-sm font-semibold whitespace-nowrap flex items-center gap-2 text-destructive"><CalendarOff className="w-4 h-4" /> Leave Management</h2>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
               <input 
                 type="date" 
-                className="w-full px-3 py-2 border rounded-md bg-transparent focus:ring-primary outline-none"
+                className="w-full sm:w-auto px-3 py-2 border rounded-md bg-background focus:ring-primary outline-none text-sm"
                 value={leaveDate}
                 onChange={e => setLeaveDate(e.target.value)}
               />
-              <Button variant="destructive" onClick={handleMarkLeave} disabled={!leaveDate || markingLeave} className="w-full">
-                {markingLeave ? "Marking..." : "Mark Date as Leave"}
+              <Button variant="destructive" onClick={handleMarkLeave} disabled={!leaveDate || markingLeave} className="rounded-xl">
+                {markingLeave ? "Marking..." : "Mark Leave"}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-3 text-center">Patients won't be able to book slots on this date.</p>
           </div>
+        </div>
 
-          <div className="glass p-6 rounded-2xl hover-lift md:col-span-2 flex flex-col">
-            <h2 className="text-xl font-semibold mb-4">Today's Agenda</h2>
-            {appointments.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground border-2 border-dashed rounded-xl p-8 text-center">
-                <p>No appointments booked yet.<br/>Your schedule is clear.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {appointments.map(apt => (
-                  <div key={apt.id} className="p-4 bg-secondary/50 rounded-xl border border-border">
+        <div className="glass-panel p-6 rounded-3xl flex flex-col min-h-[400px]">
+          {appointments.filter(apt => activeTab === 'completed' ? apt.status === 'completed' : apt.status !== 'completed').length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground border-2 border-dashed rounded-xl p-8 text-center">
+              <p>No {activeTab} appointments found.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {appointments.filter(apt => activeTab === 'completed' ? apt.status === 'completed' : apt.status !== 'completed').map((apt, index) => {
+                const delayClass = `delay-${((index % 5) + 1) * 100}`;
+                return (
+                  <div key={apt.id} className={`p-5 bg-secondary/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-white/5 animate-fade-in-up ${delayClass}`}>
                     {(() => {
                       const todayStr = new Date().toISOString().split('T')[0];
                       const isMissed = apt.status === 'scheduled' && apt.date < todayStr;
                       return (
                         <>
-                          <div className="flex justify-between mb-2">
-                            <span className="font-bold text-primary">{apt.date} at {apt.start_time}</span>
-                            <span className={`text-xs px-2 py-1 rounded-full font-semibold ${apt.status === 'completed' ? 'bg-green-500/20 text-green-600' : isMissed ? 'bg-red-500/20 text-red-600' : 'bg-orange-500/20 text-orange-600'}`}>
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <span className="font-bold text-primary block">{apt.date} at {apt.start_time}</span>
+                              {apt.patient_name && (
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); router.push(`/doctor/patient/${apt.patient_id}`); }}
+                                  className="text-sm text-blue-500 hover:underline font-medium mt-1 text-left"
+                                >
+                                  Patient: {apt.patient_name}
+                                </button>
+                              )}
+                            </div>
+                            <span className={`text-xs px-2 py-1 h-fit rounded-full font-semibold ${apt.status === 'completed' ? 'bg-green-500/20 text-green-600' : isMissed ? 'bg-red-500/20 text-red-600' : 'bg-orange-500/20 text-orange-600'}`}>
                               {isMissed ? 'MISSED' : apt.status.toUpperCase()}
                             </span>
                           </div>
@@ -196,7 +233,13 @@ export default function DoctorDashboard() {
                             </div>
                           )}
                           
-                          {apt.status !== 'completed' && (
+                          {apt.status === 'completed' ? (
+                            <div className="mt-4 pt-4 border-t border-border flex justify-end">
+                              <Button variant="outline" onClick={() => router.push(`/doctor/visit/${apt.id}`)}>
+                                View Visit Details
+                              </Button>
+                            </div>
+                          ) : (
                             <div className="mt-4 pt-4 border-t border-border">
                               {isMissed ? (
                                 reschedulingId === apt.id ? (
@@ -246,14 +289,17 @@ export default function DoctorDashboard() {
                                             <input className="p-2 border rounded w-24 bg-background" placeholder="Dosage" value={p.dosage} onChange={e => { const newP = [...prescriptions]; newP[idx].dosage = e.target.value; setPrescriptions(newP); }} required />
                                             <select className="p-2 border rounded bg-background" value={p.frequency} onChange={e => { const newP = [...prescriptions]; newP[idx].frequency = e.target.value; setPrescriptions(newP); }}>
                                               <option value="Morning">Morning</option>
+                                              <option value="Afternoon">Afternoon</option>
                                               <option value="Night">Night</option>
                                               <option value="Twice Daily">Twice Daily</option>
+                                              <option value="Thrice Daily">Thrice Daily</option>
                                             </select>
+                                            <input className="p-2 border rounded w-56 bg-background" placeholder="Details (e.g. before food)" value={p.instructions} onChange={e => { const newP = [...prescriptions]; newP[idx].instructions = e.target.value; setPrescriptions(newP); }} />
                                             <input className="p-2 border rounded w-28 bg-background" type="number" placeholder="No Of Days" value={p.duration_days} onChange={e => { const newP = [...prescriptions]; newP[idx].duration_days = e.target.value === '' ? '' : parseInt(e.target.value); setPrescriptions(newP); }} required min={1} />
                                             <button type="button" className="text-red-500 hover:text-red-700 font-bold p-2" onClick={() => { const newP = [...prescriptions]; newP.splice(idx, 1); setPrescriptions(newP); }}>X</button>
                                           </div>
                                         ))}
-                                        <Button type="button" variant="outline" size="sm" onClick={() => setPrescriptions([...prescriptions, { medication_name: "", dosage: "", frequency: "Morning", duration_days: "" }])}>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setPrescriptions([...prescriptions, { medication_name: "", dosage: "", frequency: "Morning", instructions: "", duration_days: "" }])}>
                                           + Add Medication
                                         </Button>
                                       </div>
@@ -280,10 +326,10 @@ export default function DoctorDashboard() {
                       );
                     })()}
                   </div>
-                ))}
+                );
+              })}
               </div>
             )}
-          </div>
         </div>
 
       </div>

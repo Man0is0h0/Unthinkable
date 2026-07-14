@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { Button } from "@/components/ui/button";
+import { LogOut, UserPlus, Server, ShieldCheck, Activity } from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -73,38 +74,48 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="min-h-screen p-8 animate-fade-in">
       <div className="max-w-6xl mx-auto space-y-8">
         
-        <header className="flex justify-between items-center bg-card p-6 rounded-2xl shadow-sm border border-border">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center glass-panel p-6 rounded-3xl gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-primary">Admin Control Panel</h1>
-            <p className="text-muted-foreground mt-1">Manage system configurations and personnel</p>
+            <h1 className="text-3xl font-bold text-primary flex items-center gap-3"><ShieldCheck className="w-8 h-8" /> Admin Portal</h1>
+            <p className="text-muted-foreground mt-1">Platform operations and management</p>
           </div>
-          <Button variant="outline" onClick={handleLogout}>Logout</Button>
+          <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2 rounded-xl">
+            <LogOut className="w-4 h-4" /> Logout
+          </Button>
         </header>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="glass p-6 rounded-2xl">
-            <h2 className="text-xl font-semibold mb-4">Doctor Management</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="glass-panel p-8 rounded-3xl shadow-lg animate-fade-in-up">
+            <h2 className="text-2xl font-semibold mb-2 flex items-center gap-2"><UserPlus className="w-6 h-6 text-primary" /> Doctor Management</h2>
             <p className="text-muted-foreground mb-6">Onboard new doctors and view existing ones.</p>
             
             {!showForm ? (
               <div className="space-y-4">
-                <Button onClick={() => setShowForm(true)} variant="default" className="w-full">Onboard New Doctor</Button>
+                <Button onClick={() => setShowForm(true)} variant="default" className="w-full rounded-xl h-12 shadow-md">
+                  <UserPlus className="w-5 h-5 mr-2" /> Onboard New Doctor
+                </Button>
                 
-                <div className="mt-6">
-                  <h3 className="font-semibold mb-2">Doctor Directory ({doctors.length})</h3>
-                  <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-                    {doctors.map(d => (
-                      <div key={d.id} className="p-3 bg-secondary rounded-lg flex justify-between items-center">
+                <div className="mt-8">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2">Doctor Directory <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-xs">{doctors.length}</span></h3>
+                  <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                    {doctors.map((d, index) => {
+                      const delayClass = `delay-${((index % 5) + 1) * 100}`;
+                      return (
+                      <div key={d.id} className={`p-4 bg-secondary/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-white/5 flex justify-between items-center animate-fade-in-up ${delayClass}`}>
                         <div>
-                          <p className="font-medium">Doctor ID: {d.id}</p>
-                          <p className="text-sm text-muted-foreground">{d.specialization} - {d.experience_years} YOE</p>
+                          <p className="font-bold text-primary">Doctor ID: {d.id}</p>
+                          <p className="text-sm text-muted-foreground">{d.specialization} • {d.experience_years} YOE</p>
                         </div>
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">Active</span>
+                        <span className="text-xs font-bold shadow-sm bg-green-500/20 text-green-700 dark:text-green-400 px-3 py-1 rounded-full flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                          Active
+                        </span>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -179,20 +190,26 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          <div className="glass p-6 rounded-2xl">
-            <h2 className="text-xl font-semibold mb-4">System Health</h2>
+          <div className="glass-panel p-8 rounded-3xl shadow-lg animate-fade-in-up delay-100">
+            <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2"><Server className="w-6 h-6 text-primary" /> System Health</h2>
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-secondary rounded-lg">
-                <span className="font-medium text-sm">Background Scheduler</span>
-                <span className="text-green-500 font-bold text-xs bg-green-500/10 px-2 py-1 rounded-full">ACTIVE</span>
+              <div className="flex justify-between items-center p-4 bg-secondary/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-white/5">
+                <span className="font-semibold text-sm flex items-center gap-2"><Activity className="w-4 h-4 text-primary" /> Background Scheduler</span>
+                <span className="text-green-700 dark:text-green-400 font-bold text-xs bg-green-500/20 px-3 py-1 rounded-full shadow-sm flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> ACTIVE
+                </span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-secondary rounded-lg">
-                <span className="font-medium text-sm">Gemini AI Service</span>
-                <span className="text-green-500 font-bold text-xs bg-green-500/10 px-2 py-1 rounded-full">CONNECTED</span>
+              <div className="flex justify-between items-center p-4 bg-secondary/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-white/5">
+                <span className="font-semibold text-sm flex items-center gap-2"><Activity className="w-4 h-4 text-primary" /> Gemini AI Service</span>
+                <span className="text-green-700 dark:text-green-400 font-bold text-xs bg-green-500/20 px-3 py-1 rounded-full shadow-sm flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> ONLINE
+                </span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-secondary rounded-lg">
-                <span className="font-medium text-sm">PostgreSQL Serverless</span>
-                <span className="text-green-500 font-bold text-xs bg-green-500/10 px-2 py-1 rounded-full">ONLINE</span>
+              <div className="flex justify-between items-center p-4 bg-secondary/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-white/5">
+                <span className="font-semibold text-sm flex items-center gap-2"><Activity className="w-4 h-4 text-primary" /> Email Service</span>
+                <span className="text-green-700 dark:text-green-400 font-bold text-xs bg-green-500/20 px-3 py-1 rounded-full shadow-sm flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> OPERATIONAL
+                </span>
               </div>
             </div>
           </div>
