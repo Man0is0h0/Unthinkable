@@ -1,4 +1,6 @@
 import asyncio
+from dotenv import load_dotenv
+load_dotenv()
 from app.database import engine, Base
 from app import models  # This ensures the models are imported and registered with Base
 
