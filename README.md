@@ -1,5 +1,7 @@
 # Unthinkable Health
 
+🌍 **[Live Demo: unthinkable-kappa.vercel.app](https://unthinkable-kappa.vercel.app/)** 🌍
+
 I built Unthinkable Health to be a modern, AI-powered healthcare scheduling and consultation platform. My goal was to connect patients with doctors, streamline appointment booking, and leverage AI (specifically the Groq API) to extract vital clinical summaries from raw patient symptoms before the doctor even begins the checkup.
 
 For the stack, I went with a **Next.js (React)** frontend and a **FastAPI (Python)** backend, all powered by a **Neon Serverless Postgres** database.
