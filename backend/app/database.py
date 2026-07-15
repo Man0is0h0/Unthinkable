@@ -7,7 +7,12 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./test.db") 
 
 # Temporary fallback to sqlite for initial scaffolding if URL not provided
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(
+    DATABASE_URL, 
+    echo=True, 
+    pool_pre_ping=True,  # Test connections before using them to prevent stale connection errors
+    pool_recycle=300     # Recycle connections after 5 minutes
+)
 
 AsyncSessionLocal = sessionmaker(
     bind=engine, 
