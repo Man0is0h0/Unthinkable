@@ -24,45 +24,51 @@ async def send_email(to_email: str, subject: str, body: str, ics_attachment: byt
         logger.info(f"=========================================")
         return True
     
-    # Real SMTP Logic (Requires environment variables)
-    smtp_host = os.environ.get("SMTP_HOST", "smtp.sendgrid.net")
-    smtp_port = int(os.environ.get("SMTP_PORT", 587))
-    smtp_user = os.environ.get("SMTP_USER")
-    smtp_pass = os.environ.get("SMTP_PASS")
+    # Real Email Logic via Brevo HTTP API
+    brevo_api_key = os.environ.get("BREVO_API_KEY")
     from_email = os.environ.get("FROM_EMAIL", "noreply@unthinkable-health.com")
 
     import asyncio
+    import urllib.request
+    import json
+    import base64
 
     def send_email_sync():
-        if not smtp_user or not smtp_pass:
-            logger.error("SMTP credentials missing. Email not sent.")
+        if not brevo_api_key:
+            logger.error("BREVO_API_KEY missing. Email not sent.")
             return False
 
-        msg = EmailMessage()
-        msg['Subject'] = subject
-        msg['From'] = from_email
-        msg['To'] = to_email
-        msg.set_content(body)
+        url = "https://api.brevo.com/v3/smtp/email"
+        headers = {
+            "accept": "application/json",
+            "api-key": brevo_api_key,
+            "content-type": "application/json"
+        }
+
+        data = {
+            "sender": {"name": "Unthinkable Health", "email": from_email},
+            "to": [{"email": to_email}],
+            "subject": subject,
+            "textContent": body
+        }
 
         if ics_attachment:
-            msg.add_attachment(
-                ics_attachment,
-                maintype='text',
-                subtype='calendar',
-                filename='invite.ics',
-                method='REQUEST'
-            )
+            data["attachment"] = [{
+                "name": "invite.ics",
+                "content": base64.b64encode(ics_attachment).decode('utf-8')
+            }]
 
+        req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method="POST")
         try:
-            # Set a 5 second timeout because Render Free Tier blocks outbound SMTP,
-            # which would otherwise hang the connection for 2+ minutes.
-            with smtplib.SMTP(smtp_host, smtp_port, timeout=5) as server:
-                server.starttls()
-                server.login(smtp_user, smtp_pass)
-                server.send_message(msg)
-            return True
+            with urllib.request.urlopen(req, timeout=10) as response:
+                if response.status in (200, 201, 202):
+                    logger.info(f"Email sent successfully to {to_email} via Brevo")
+                    return True
+                else:
+                    logger.error(f"Failed to send email. Status: {response.status}")
+                    return False
         except Exception as e:
-            logger.error(f"Failed to send email to {to_email}: {e}")
+            logger.error(f"Error sending email via Brevo API: {e}")
             return False
 
     loop = asyncio.get_event_loop()
