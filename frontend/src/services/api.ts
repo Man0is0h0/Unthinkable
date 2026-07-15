@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api', // Match FastAPI port
+  baseURL: `${API_URL}/api`,
   withCredentials: true, // IMPORTANT: Allows browser to send HttpOnly cookies automatically
 });
 
