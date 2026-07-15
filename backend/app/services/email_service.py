@@ -31,31 +31,39 @@ async def send_email(to_email: str, subject: str, body: str, ics_attachment: byt
     smtp_pass = os.environ.get("SMTP_PASS")
     from_email = os.environ.get("FROM_EMAIL", "noreply@unthinkable-health.com")
 
-    if not smtp_user or not smtp_pass:
-        logger.error("SMTP credentials missing. Email not sent.")
-        return False
+    import asyncio
 
-    msg = EmailMessage()
-    msg['Subject'] = subject
-    msg['From'] = from_email
-    msg['To'] = to_email
-    msg.set_content(body)
+    def send_email_sync():
+        if not smtp_user or not smtp_pass:
+            logger.error("SMTP credentials missing. Email not sent.")
+            return False
 
-    if ics_attachment:
-        msg.add_attachment(
-            ics_attachment,
-            maintype='text',
-            subtype='calendar',
-            filename='invite.ics',
-            method='REQUEST'
-        )
+        msg = EmailMessage()
+        msg['Subject'] = subject
+        msg['From'] = from_email
+        msg['To'] = to_email
+        msg.set_content(body)
 
-    try:
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.send_message(msg)
-        return True
-    except Exception as e:
-        logger.error(f"Failed to send email to {to_email}: {e}")
-        return False
+        if ics_attachment:
+            msg.add_attachment(
+                ics_attachment,
+                maintype='text',
+                subtype='calendar',
+                filename='invite.ics',
+                method='REQUEST'
+            )
+
+        try:
+            # Set a 5 second timeout because Render Free Tier blocks outbound SMTP,
+            # which would otherwise hang the connection for 2+ minutes.
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=5) as server:
+                server.starttls()
+                server.login(smtp_user, smtp_pass)
+                server.send_message(msg)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send email to {to_email}: {e}")
+            return False
+
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, send_email_sync)
